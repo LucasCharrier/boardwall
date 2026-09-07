@@ -1,0 +1,108 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Boards</title>
+<link rel="stylesheet" href="theme.css" />
+<style>
+  body {
+    height: 100vh; display: flex; flex-direction: column;
+    background: var(--rail); border-right: 1px solid var(--rail-border);
+    user-select: none; overflow: hidden; -webkit-app-region: drag;
+  }
+  #rail {
+    flex: 1; padding: 44px 0 8px; display: flex; flex-direction: column;
+    align-items: center; gap: 10px; overflow-y: auto; overflow-x: hidden;
+  }
+  #rail::-webkit-scrollbar { width: 0; }
+  .item {
+    -webkit-app-region: no-drag;
+    position: relative; width: 48px; height: 48px; flex: 0 0 auto;
+    border: 0; padding: 0; border-radius: 15px; cursor: pointer; background: transparent;
+    opacity: .5; transition: opacity .12s; display: grid; place-items: center;
+  }
+  .item:hover { opacity: .82; }
+  .item.active { opacity: 1; }
+  .item.active::before {
+    content: ""; position: absolute; left: -14px; top: 50%; translate: 0 -50%;
+    width: 4px; height: 26px; border-radius: 0 4px 4px 0; background: var(--text);
+  }
+  .item img, .item .initials {
+    grid-area: 1 / 1; width: 48px; height: 48px; border-radius: 15px;
+    object-fit: cover; display: block;
+  }
+  .item .initials {
+    display: grid; place-items: center; font-size: 16px; font-weight: 700;
+    letter-spacing: .5px; color: #fff;
+  }
+  .item .badge {
+    grid-area: 1 / 1; width: 48px; height: 48px; border-radius: 15px;
+    box-shadow: inset 0 0 0 1px var(--ring);
+  }
+  .tools { display: flex; flex-direction: column; align-items: center; gap: 6px; padding-bottom: 14px; }
+  .tools button {
+    -webkit-app-region: no-drag;
+    width: 40px; height: 34px; border: 0; border-radius: 10px; background: transparent;
+    color: var(--faint); font-size: 19px; line-height: 1; cursor: pointer;
+    transition: color .12s, background .12s;
+  }
+  .tools button:hover { color: var(--text); background: var(--hover); }
+  #add { font-size: 22px; }
+  #empty { padding: 0 8px 10px; text-align: center; color: var(--faint); font-size: 11px; }
+</style>
+
+<div id="rail"></div>
+<div id="empty" hidden>Aucun<br />board</div>
+<div class="tools">
+  <button id="add" title="Ajouter un board (⌘N)">+</button>
+  <button id="settings" title="Réglages (⌘,)">⚙</button>
+</div>
+
+<script>
+  const rail = document.getElementById("rail");
+  const empty = document.getElementById("empty");
+
+  function hue(text) {
+    let hash = 0;
+    for (const char of text) hash = (hash * 31 + char.codePointAt(0)) % 360;
+    return hash;
+  }
+
+  function render(state) {
+    rail.textContent = "";
+    empty.hidden = state.boards.length > 0;
+
+    for (const board of state.boards) {
+      const item = document.createElement("button");
+      item.className = "item" + (board.id === state.activeId ? " active" : "");
+      item.title = board.name || board.url;
+
+      const initials = document.createElement("span");
+      initials.className = "initials";
+      initials.textContent = board.initials;
+      initials.style.background = `hsl(${hue(board.url)} 42% 40%)`;
+      item.append(initials);
+
+      if (board.avatar) {
+        const img = document.createElement("img");
+        img.src = board.avatar;
+        img.alt = "";
+        img.addEventListener("load", () => initials.replaceWith(img));
+      }
+
+      const badge = document.createElement("span");
+      badge.className = "badge";
+      item.append(badge);
+
+      item.addEventListener("click", () => kiosk.select(board.id));
+      item.addEventListener("contextmenu", (event) => {
+        event.preventDefault();
+        kiosk.contextMenu(board.id);
+      });
+      rail.append(item);
+    }
+  }
+
+  document.getElementById("add").addEventListener("click", () => kiosk.openAdd());
+  document.getElementById("settings").addEventListener("click", () => kiosk.openSettings());
+  kiosk.onState(render);
+  kiosk.getState().then(render);
+</script>

@@ -1,0 +1,66 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Ajouter un board</title>
+<link rel="stylesheet" href="theme.css" />
+<link rel="stylesheet" href="dialog.css" />
+
+<form class="card" id="form">
+  <h1 id="heading">Ajouter un board</h1>
+  <p class="lead" id="lead">Colle l'adresse d'un GitHub Project.</p>
+
+  <p class="error" id="error" hidden></p>
+
+  <label for="url">Adresse du board</label>
+  <input type="text" id="url" name="url" placeholder="https://github.com/orgs/<orga>/projects/<n>" autocomplete="off" spellcheck="false" />
+  <p class="hint">
+    Accepté : <code>/orgs/&lt;orga&gt;/projects/&lt;n&gt;</code> et <code>/users/&lt;login&gt;/projects/&lt;n&gt;</code>.
+  </p>
+
+  <label for="name">Nom (optionnel)</label>
+  <input type="text" id="name" name="name" placeholder="repris du titre du board si vide" autocomplete="off" />
+
+  <div class="row">
+    <button type="button" id="cancel">Annuler</button>
+    <button type="submit" class="primary" id="submit">Ajouter</button>
+  </div>
+</form>
+
+<script>
+  const form = document.getElementById("form");
+  const urlField = document.getElementById("url");
+  const nameField = document.getElementById("name");
+  const errorBox = document.getElementById("error");
+  const submit = document.getElementById("submit");
+
+  function fail(message) {
+    errorBox.textContent = message;
+    errorBox.hidden = false;
+  }
+
+  kiosk.modalInit().then(({ suggestedUrl, isFirstRun }) => {
+    if (suggestedUrl) urlField.value = suggestedUrl;
+    if (isFirstRun) {
+      document.getElementById("heading").textContent = "Premier board";
+      document.getElementById("lead").textContent =
+        "Cette fenêtre n'affiche que des GitHub Projects. Colle l'adresse d'un board pour commencer.";
+      document.getElementById("cancel").hidden = true;
+    }
+    urlField.focus();
+    urlField.select();
+  });
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    errorBox.hidden = true;
+    submit.disabled = true;
+    const result = await kiosk.add(urlField.value, nameField.value);
+    submit.disabled = false;
+    if (result?.error) fail(result.error);
+    else kiosk.closeModal();
+  });
+
+  document.getElementById("cancel").addEventListener("click", () => kiosk.closeModal());
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !document.getElementById("cancel").hidden) kiosk.closeModal();
+  });
+</script>

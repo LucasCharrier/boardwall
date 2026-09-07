@@ -1,0 +1,41 @@
+{
+  "name": "boardwall",
+  "productName": "Boardwall",
+  "version": "1.0.0",
+  "description": "Une fenêtre verrouillée sur tes GitHub Projects, et rien d'autre.",
+  "author": "Lucas Charrier",
+  "main": "src/main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --mac --dir && npm run sign",
+    "sign": "codesign --force --deep --sign - dist/mac-arm64/*.app",
+    "probe": "electron scripts/probe.js",
+    "icon": "electron scripts/make-icon.js",
+    "test": "node scripts/test-allowlist.js && electron scripts/probe.js"
+  },
+  "devDependencies": {
+    "electron": "^38.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.boardwall.app",
+    "productName": "Boardwall",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": [
+        "dir"
+      ],
+      "identity": null
+    }
+  },
+  "license": "MIT"
+}
