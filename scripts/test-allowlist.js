@@ -1,6 +1,6 @@
 "use strict";
 
-const { classify, identityProvider } = require("../src/allowlist.js");
+const { classify } = require("../src/allowlist.js");
 const { normalizeUrl, initialsOf } = require("../src/boards.js");
 
 const CASES = [
@@ -42,10 +42,13 @@ const extras = [
   ["normalizeUrl refuse le vide", normalizeUrl("   "), null],
   ["initiales sur deux mots", initialsOf("Release blockers"), "RB"],
   ["initiales sur un mot", initialsOf("roadmap"), "RO"],
-  ["Google reconnu comme fournisseur d'identité", identityProvider("https://accounts.google.com/o/oauth2/v2/auth?x=1"), "Google"],
-  ["Apple reconnu comme fournisseur d'identité", identityProvider("https://appleid.apple.com/auth/authorize"), "Apple"],
-  ["un domaine quelconque n'en est pas un", identityProvider("https://example.com/auth"), null],
-  ["accounts.google.com reste bloqué", classify("https://accounts.google.com/o/oauth2/v2/auth"), "blocked"],
+  ["le login Google est autorisé", classify("https://accounts.google.com/v3/signin/identifier?client_id=x"), "auth"],
+  ["le login Apple est autorisé", classify("https://appleid.apple.com/auth/authorize?client_id=x"), "auth"],
+  ["le lancement social GitHub est autorisé", classify("https://github.com/sessions/social/google/initiate"), "auth"],
+  ["le retour social GitHub est autorisé", classify("https://github.com/sessions/social/google/callback?code=x"), "auth"],
+  ["le reste de Google reste bloqué", classify("https://mail.google.com/mail/u/0"), "blocked"],
+  ["myaccount.google.com reste bloqué", classify("https://myaccount.google.com/"), "blocked"],
+  ["icloud.com reste bloqué", classify("https://www.icloud.com/mail"), "blocked"],
 ];
 
 for (const [label, actual, expected] of extras) {

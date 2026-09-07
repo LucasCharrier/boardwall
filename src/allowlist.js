@@ -16,22 +16,12 @@ const AUTH_PATHS = [
   /^\/authentication(\/.*)?$/,
 ];
 
-// GitHub propose « Continue with Google / Apple ». Ces fournisseurs refusent par
-// politique l'OAuth depuis un webview embarqué, donc la ronde ne peut pas aboutir
-// ici — autant le dire au lieu de renvoyer vers un navigateur d'où rien ne revient.
-const IDENTITY_PROVIDERS = new Map([
-  ["accounts.google.com", "Google"],
-  ["accounts.youtube.com", "Google"],
-  ["appleid.apple.com", "Apple"],
-]);
-
-function identityProvider(rawUrl) {
-  try {
-    return IDENTITY_PROVIDERS.get(new URL(rawUrl).hostname) ?? null;
-  } catch {
-    return null;
-  }
-}
+// « Continue with Google / Apple » sort de github.com le temps d'un aller-retour :
+//   /login -> /sessions/social/<idp>/initiate -> <idp> -> /sessions/social/<idp>/callback
+// Ces deux hôtes sont donc autorisés en entier. C'est le seul trou volontaire du
+// kiosque, et il est étroit : depuis ces pages, tout autre hôte reste bloqué —
+// y compris le reste de Google.
+const AUTH_HOSTS = new Set(["accounts.google.com", "appleid.apple.com"]);
 
 function classify(rawUrl) {
   let url;
@@ -40,7 +30,9 @@ function classify(rawUrl) {
   } catch {
     return "blocked";
   }
-  if (url.protocol !== "https:" || !HOSTS.has(url.hostname)) return "blocked";
+  if (url.protocol !== "https:") return "blocked";
+  if (AUTH_HOSTS.has(url.hostname)) return "auth";
+  if (!HOSTS.has(url.hostname)) return "blocked";
 
   const path = url.pathname.replace(/\/+$/, "") || "/";
   if (BOARD_PATHS.some((pattern) => pattern.test(path))) return "board";
@@ -52,4 +44,4 @@ function isAllowed(rawUrl) {
   return classify(rawUrl) !== "blocked";
 }
 
-module.exports = { classify, isAllowed, identityProvider };
+module.exports = { classify, isAllowed };

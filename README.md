@@ -29,12 +29,9 @@ La connexion à GitHub se fait **dans la fenêtre**, une seule fois pour tous le
 boards : `⌘L` charge la page de login avec un retour sur le board courant. La
 session vit dans le profil de l'app, **indépendante de Safari et de Chrome** —
 être connecté dans son navigateur n'y change rien, il faut se connecter ici.
-**Identifiant + mot de passe (+ TOTP)**, pas « Continue with Google / Apple » :
-ces fournisseurs refusent par politique l'OAuth depuis un webview embarqué, donc
-la ronde ne peut pas revenir dans l'app — GitHub répond alors *« We could not
-validate the response from your social login provider »*. L'app le dit désormais
-au moment du clic au lieu d'ouvrir un navigateur d'où rien ne reviendra. Les
-passkeys ne fonctionnent pas non plus dans un webview.
+Mot de passe, ou « Continue with Google / Apple » : les deux marchent. Le login
+social sort de `github.com` le temps d'un aller-retour, et ces deux hôtes sont
+autorisés pour ça. Les passkeys, elles, ne fonctionnent pas dans un webview.
 
 L'app se présente à GitHub avec un user-agent Chrome standard : les jetons
 `Boardwall/…` et `Electron/…` sont retirés d'`app.userAgentFallback`, pour ne pas
@@ -50,8 +47,22 @@ avoir à deviner ce qu'un site fait d'un client qu'il ne reconnaît pas.
 | liste des projects d'une orga | `/orgs/<orga>/projects` |
 | board perso | `/users/<login>/projects/3` |
 | étapes d'authentification | `/login`, `/session`, `/sessions/two-factor`, `/orgs/<orga>/sso` |
+| login social, le temps de l'aller-retour | `accounts.google.com`, `appleid.apple.com` |
 
 Tout le reste est bloqué — `github.com/` compris.
+
+Les deux hôtes d'identité sont le **seul trou volontaire** du kiosque. Il reste
+étroit : ils ne sont atteignables que depuis la page de login, et depuis leurs
+pages tout autre hôte est bloqué — `mail.google.com`, `myaccount.google.com` et
+`icloud.com` sont couverts par les tests.
+
+> Une note sur la méthode, parce que je m'y suis fait prendre : j'avais d'abord
+> décrété que Google refusait l'OAuth depuis un webview embarqué et documenté le
+> login social comme une impasse. C'était faux. En le mesurant — clic réel sur le
+> bouton, sous deux user-agents — Google sert sa page de connexion normale dans
+> les deux cas, sans `disallowed_useragent`. Le seul obstacle était cette
+> allowlist. La politique existe bien chez Google, mais elle ne s'applique pas à
+> ce flux.
 
 ## Les trois barrages
 
