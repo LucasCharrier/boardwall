@@ -29,7 +29,12 @@ La connexion à GitHub se fait **dans la fenêtre**, une seule fois pour tous le
 boards : `⌘L` charge la page de login avec un retour sur le board courant. La
 session vit dans le profil de l'app, **indépendante de Safari et de Chrome** —
 être connecté dans son navigateur n'y change rien, il faut se connecter ici.
-Les passkeys ne fonctionnent pas dans un webview Electron : mot de passe + TOTP.
+**Identifiant + mot de passe (+ TOTP)**, pas « Continue with Google / Apple » :
+ces fournisseurs refusent par politique l'OAuth depuis un webview embarqué, donc
+la ronde ne peut pas revenir dans l'app — GitHub répond alors *« We could not
+validate the response from your social login provider »*. L'app le dit désormais
+au moment du clic au lieu d'ouvrir un navigateur d'où rien ne reviendra. Les
+passkeys ne fonctionnent pas non plus dans un webview.
 
 L'app se présente à GitHub avec un user-agent Chrome standard : les jetons
 `Boardwall/…` et `Electron/…` sont retirés d'`app.userAgentFallback`, pour ne pas

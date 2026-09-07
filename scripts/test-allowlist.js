@@ -1,6 +1,6 @@
 "use strict";
 
-const { classify } = require("../src/allowlist.js");
+const { classify, identityProvider } = require("../src/allowlist.js");
 const { normalizeUrl, initialsOf } = require("../src/boards.js");
 
 const CASES = [
@@ -42,6 +42,10 @@ const extras = [
   ["normalizeUrl refuse le vide", normalizeUrl("   "), null],
   ["initiales sur deux mots", initialsOf("Release blockers"), "RB"],
   ["initiales sur un mot", initialsOf("roadmap"), "RO"],
+  ["Google reconnu comme fournisseur d'identité", identityProvider("https://accounts.google.com/o/oauth2/v2/auth?x=1"), "Google"],
+  ["Apple reconnu comme fournisseur d'identité", identityProvider("https://appleid.apple.com/auth/authorize"), "Apple"],
+  ["un domaine quelconque n'en est pas un", identityProvider("https://example.com/auth"), null],
+  ["accounts.google.com reste bloqué", classify("https://accounts.google.com/o/oauth2/v2/auth"), "blocked"],
 ];
 
 for (const [label, actual, expected] of extras) {

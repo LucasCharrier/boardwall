@@ -1,7 +1,7 @@
 "use strict";
 
 const { shell } = require("electron");
-const { classify } = require("./allowlist.js");
+const { classify, identityProvider } = require("./allowlist.js");
 
 function toast(contents, text) {
   contents
@@ -27,6 +27,15 @@ function toast(contents, text) {
     .catch(() => {});
 }
 
+function refuse(contents, url) {
+  const provider = identityProvider(url);
+  if (provider) {
+    toast(contents, `La connexion via ${provider} n'aboutit pas dans une app embarquée — utilise identifiant + mot de passe.`);
+    return;
+  }
+  openOutside(contents, url);
+}
+
 function openOutside(contents, url) {
   try {
     if (/^https?:$/.test(new URL(url).protocol)) {
@@ -47,7 +56,7 @@ function guard(contents, homeUrl) {
   const recover = () => setTimeout(() => contents.loadURL(home()), 0);
 
   contents.setWindowOpenHandler(({ url }) => {
-    if (classify(url) === "blocked") openOutside(contents, url);
+    if (classify(url) === "blocked") refuse(contents, url);
     else contents.loadURL(url);
     return { action: "deny" };
   });
@@ -55,7 +64,7 @@ function guard(contents, homeUrl) {
   contents.on("will-navigate", (event, url) => {
     if (classify(url) === "blocked") {
       event.preventDefault();
-      openOutside(contents, url);
+      refuse(contents, url);
     }
   });
 
