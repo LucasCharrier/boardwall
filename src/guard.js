@@ -66,6 +66,16 @@ function guard(contents, homeUrl) {
     }
   });
 
+  // Google refuse l'OAuth depuis une app embarquée (disallowed_useragent) : « Ce
+  // navigateur ou cette application ne sont peut-être pas sécurisés ». Le contrôle
+  // tombe après la saisie de l'e-mail, pas sur la page d'identification — d'où
+  // l'intérêt de prévenir avant le clic plutôt qu'après.
+  contents.on("did-navigate", (_event, url) => {
+    if (/^https:\/\/github\.com\/login(\?|$)/.test(url)) {
+      toast(contents, "Identifiant + mot de passe : Google refuse la connexion depuis une app embarquée.");
+    }
+  });
+
   contents.on("did-navigate-in-page", (_event, url, isMainFrame) => {
     if (!isMainFrame || classify(url) !== "blocked") return;
     toast(contents, "Hors des Projects — retour au board.");

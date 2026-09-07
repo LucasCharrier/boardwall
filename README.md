@@ -29,9 +29,16 @@ La connexion à GitHub se fait **dans la fenêtre**, une seule fois pour tous le
 boards : `⌘L` charge la page de login avec un retour sur le board courant. La
 session vit dans le profil de l'app, **indépendante de Safari et de Chrome** —
 être connecté dans son navigateur n'y change rien, il faut se connecter ici.
-Mot de passe, ou « Continue with Google / Apple » : les deux marchent. Le login
-social sort de `github.com` le temps d'un aller-retour, et ces deux hôtes sont
-autorisés pour ça. Les passkeys, elles, ne fonctionnent pas dans un webview.
+**Identifiant + mot de passe** (+ TOTP) : c'est la voie sûre, et l'app le rappelle
+d'un bandeau en arrivant sur la page de login.
+
+« Continue with Google » ne peut pas aboutir : Google refuse l'OAuth depuis une
+app embarquée et répond *« Ce navigateur ou cette application ne sont peut-être
+pas sécurisés »*. Ce contrôle protège ton mot de passe Google d'une app qui
+s'interposerait — le franchir demanderait de maquiller le client, ce que ce
+dépôt ne fait pas. Le sort de « Continue with Apple » n'est pas vérifié.
+
+Les passkeys ne fonctionnent pas non plus dans un webview.
 
 L'app se présente à GitHub avec un user-agent Chrome standard : les jetons
 `Boardwall/…` et `Electron/…` sont retirés d'`app.userAgentFallback`, pour ne pas
@@ -56,13 +63,16 @@ Les deux hôtes d'identité sont le **seul trou volontaire** du kiosque. Il rest
 pages tout autre hôte est bloqué — `mail.google.com`, `myaccount.google.com` et
 `icloud.com` sont couverts par les tests.
 
-> Une note sur la méthode, parce que je m'y suis fait prendre : j'avais d'abord
-> décrété que Google refusait l'OAuth depuis un webview embarqué et documenté le
-> login social comme une impasse. C'était faux. En le mesurant — clic réel sur le
-> bouton, sous deux user-agents — Google sert sa page de connexion normale dans
-> les deux cas, sans `disallowed_useragent`. Le seul obstacle était cette
-> allowlist. La politique existe bien chez Google, mais elle ne s'applique pas à
-> ce flux.
+Ils restent autorisés bien que le flux Google n'aboutisse pas : c'est ce qui
+permet de lire le refus du fournisseur au lieu d'un renvoi silencieux vers le
+navigateur, et de laisser sa chance à Apple, non vérifié.
+
+> Une note sur la méthode. J'ai d'abord affirmé sans mesure que Google bloquait ce
+> flux. Puis je l'ai « réfuté » en cliquant le bouton depuis une WebContentsView :
+> Google servait sa page de connexion normale, donc le flux passait. Faux aussi —
+> le contrôle de Google tombe **après** la saisie de l'e-mail, et ma sonde
+> s'arrêtait avant. « La page s'affiche » ne prouve pas « la connexion aboutit ».
+> Un test qui ne va pas jusqu'au bout du parcours ne réfute rien.
 
 ## Les trois barrages
 
