@@ -42,6 +42,10 @@ function openOutside(contents, url) {
 function guard(contents, homeUrl) {
   const home = typeof homeUrl === "function" ? homeUrl : () => homeUrl;
 
+  // Naviguer depuis l'intérieur d'un événement de navigation est fragile : on
+  // repousse toujours la récupération au tick suivant.
+  const recover = () => setTimeout(() => contents.loadURL(home()), 0);
+
   contents.setWindowOpenHandler(({ url }) => {
     if (classify(url) === "blocked") openOutside(contents, url);
     else contents.loadURL(url);
@@ -58,7 +62,7 @@ function guard(contents, homeUrl) {
   contents.on("will-redirect", (event, url) => {
     if (classify(url) === "blocked") {
       event.preventDefault();
-      contents.loadURL(home());
+      recover();
     }
   });
 
@@ -66,7 +70,18 @@ function guard(contents, homeUrl) {
     if (!isMainFrame || classify(url) !== "blocked") return;
     toast(contents, "Hors des Projects — retour au board.");
     if (contents.navigationHistory.canGoBack()) contents.navigationHistory.goBack();
-    else contents.loadURL(home());
+    else recover();
+  });
+
+  // Filet de sécurité : quoi qu'il arrive, une vue ne reste jamais vide. Un
+  // ERR_ABORTED (-3) est le cas normal d'une navigation qu'on vient de bloquer.
+  contents.on("did-fail-load", (_event, errorCode, _description, _url, isMainFrame) => {
+    if (isMainFrame && errorCode !== -3) recover();
+  });
+
+  contents.on("did-stop-loading", () => {
+    const url = contents.getURL();
+    if (!url || url === "about:blank") recover();
   });
 }
 

@@ -6,6 +6,9 @@ const { Store, normalizeUrl } = require("./boards.js");
 const { guard } = require("./guard.js");
 
 app.setName("Boardwall");
+app.userAgentFallback = app.userAgentFallback
+  .replace(new RegExp(`\\s+${app.getName()}/\\S+`), "")
+  .replace(/\s+Electron\/\S+/, "");
 
 const SIDEBAR_WIDTH = 76;
 const PRELOAD = path.join(__dirname, "preload.js");
@@ -153,6 +156,13 @@ function selectBoard(id) {
   activeView()?.webContents.focus();
 }
 
+function signIn() {
+  const board = store.get(store.data.activeId);
+  const view = activeView();
+  if (!board || !view) return;
+  view.webContents.loadURL(`https://github.com/login?return_to=${encodeURIComponent(board.url)}`);
+}
+
 function cycleBoard(delta) {
   const { boards, activeId } = store.data;
   if (boards.length < 2) return;
@@ -179,12 +189,22 @@ function buildMenu() {
           { label: "Ajouter un board…", accelerator: "Cmd+N", click: () => openModal("add") },
           { label: "Réglages…", accelerator: "Cmd+,", click: () => openModal("settings") },
           { type: "separator" },
+          { label: "Se connecter à GitHub…", accelerator: "Cmd+L", click: signIn },
+          { type: "separator" },
           { label: "Board suivant", accelerator: "Ctrl+Tab", click: () => cycleBoard(1) },
           { label: "Board précédent", accelerator: "Ctrl+Shift+Tab", click: () => cycleBoard(-1) },
           { type: "separator" },
           ...jumps,
           { type: "separator" },
-          { label: "Recharger le board", accelerator: "Cmd+R", click: () => activeView()?.webContents.reload() },
+          {
+            label: "Revenir au board",
+            accelerator: "Cmd+R",
+            click: () => {
+              const board = store.get(store.data.activeId);
+              if (board) activeView()?.webContents.loadURL(board.url);
+            },
+          },
+          { label: "Recharger la page", accelerator: "Cmd+Shift+R", click: () => activeView()?.webContents.reload() },
           {
             label: "Retour",
             accelerator: "Cmd+[",

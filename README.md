@@ -26,9 +26,14 @@ ajouter un, `⌘,` pour les réglages, clic droit sur une vignette pour la recha
 la déplacer ou la retirer.
 
 La connexion à GitHub se fait **dans la fenêtre**, une seule fois pour tous les
-boards : la session est persistée dans le profil de l'app, indépendante de
-Safari et de Chrome. Les passkeys ne fonctionnent pas dans un webview Electron —
-mot de passe + TOTP.
+boards : `⌘L` charge la page de login avec un retour sur le board courant. La
+session vit dans le profil de l'app, **indépendante de Safari et de Chrome** —
+être connecté dans son navigateur n'y change rien, il faut se connecter ici.
+Les passkeys ne fonctionnent pas dans un webview Electron : mot de passe + TOTP.
+
+L'app se présente à GitHub avec un user-agent Chrome standard : les jetons
+`Boardwall/…` et `Electron/…` sont retirés d'`app.userAgentFallback`, pour ne pas
+avoir à deviner ce qu'un site fait d'un client qu'il ne reconnaît pas.
 
 ## Ce qui est autorisé
 
@@ -53,12 +58,19 @@ l'événement auquel on pense d'abord.
 | navigation classique (`location.href`, clic) | `will-navigate` | refusée, URL ouverte dans le navigateur |
 | redirection serveur (retour de login, 302) | `will-redirect` | refusée, retour au board |
 | navigation Turbo (`history.pushState`) | `did-navigate-in-page` | `goBack()`, sinon retour au board |
+| chargement échoué, ou vue restée vide | `did-fail-load` / `did-stop-loading` | retour au board |
 | `target="_blank"` | `setWindowOpenHandler` | popup refusée ; board → même fenêtre, reste → navigateur |
 
 Le troisième est celui qu'on oublie : **GitHub navigue en Turbo**, donc un clic sur
 un lien interne ne déclenche pas `will-navigate` mais un `pushState`. Sans ce
 barrage, l'app fuit sur la moitié des liens tout en ayant l'air verrouillée.
-`npm test` rejoue les quatre voies contre un vrai board.
+`npm test` rejoue ces voies contre un vrai board.
+
+Toutes les récupérations sont **différées d'un tick** : appeler `loadURL()` depuis
+l'intérieur d'un événement de navigation est fragile. Et `⌘R` ne recharge pas la
+page courante, il **recharge l'URL du board** — si une vue se retrouve coincée
+ailleurs, le raccourci qu'on tape par réflexe la ramène au lieu de recharger
+l'endroit où elle est bloquée.
 
 ## Architecture
 
@@ -101,7 +113,9 @@ est ignorée au chargement.
 | `⌘,` | réglages |
 | `⌘1`…`⌘9` | aller au n-ième board |
 | `⌃Tab` / `⌃⇧Tab` | board suivant / précédent |
-| `⌘R` | recharger le board actif |
+| `⌘L` | se connecter à GitHub, retour sur le board courant |
+| `⌘R` | revenir au board actif |
+| `⌘⇧R` | recharger la page courante |
 | `⌘[` / `⌘]` | retour / suivant, dans l'allowlist |
 
 ## Limites connues
