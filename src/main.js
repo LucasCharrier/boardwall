@@ -4,6 +4,7 @@ const { app, BaseWindow, WebContentsView, Menu, ipcMain, clipboard, dialog, shel
 const path = require("node:path");
 const { Store, normalizeUrl } = require("./boards.js");
 const { guard } = require("./guard.js");
+const { attachBoardMenu, attachEditMenu } = require("./context-menu.js");
 
 app.setName("Boardwall");
 app.userAgentFallback = app.userAgentFallback
@@ -68,6 +69,7 @@ function syncTitle() {
 
 // Le shell est local : aucune navigation ne doit pouvoir l'emmener ailleurs.
 function lockShell(contents) {
+  attachEditMenu(contents);
   contents.on("will-navigate", (event) => event.preventDefault());
   contents.setWindowOpenHandler(({ url }) => {
     if (/^https?:/.test(url)) shell.openExternal(url);
@@ -79,6 +81,7 @@ function createBoardView(board) {
   const view = new WebContentsView({ webPreferences: boardPrefs });
   view.setBackgroundColor(surfaces().window);
   guard(view.webContents, () => store.get(board.id)?.url ?? board.url);
+  attachBoardMenu(view.webContents, () => store.get(board.id)?.url ?? board.url);
 
   view.webContents.on("page-title-updated", (_event, title) => {
     const current = store.get(board.id);
