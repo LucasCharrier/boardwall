@@ -29,12 +29,20 @@ function surfaces() {
   return { window: dark ? "#0d1117" : "#ffffff", rail: dark ? "#16181d" : "#f0f2f5" };
 }
 
-function applyTheme() {
-  nativeTheme.themeSource = store.data.theme;
+// Repeindre le fond ne touche pas au thème : écrire `nativeTheme.themeSource`
+// émet `updated`, même quand la valeur ne change pas. Faire les deux dans la
+// même fonction et la brancher sur `updated` la ferait se rappeler elle-même —
+// mesuré à 120 000 tours par seconde, soit un cœur entier brûlé en continu.
+function paintSurfaces() {
   const { window: windowColor, rail } = surfaces();
   win?.setBackgroundColor(windowColor);
   sidebar?.setBackgroundColor(rail);
   for (const view of views.values()) view.setBackgroundColor(windowColor);
+}
+
+function applyTheme() {
+  nativeTheme.themeSource = store.data.theme;
+  paintSurfaces();
 }
 
 function activeView() {
@@ -351,7 +359,7 @@ app.on("second-instance", () => {
 app.whenReady().then(() => {
   store = new Store(path.join(app.getPath("userData"), "config.json"));
   nativeTheme.themeSource = store.data.theme;
-  nativeTheme.on("updated", () => applyTheme());
+  nativeTheme.on("updated", paintSurfaces);
   session.defaultSession.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
   buildMenu();
   registerIpc();
