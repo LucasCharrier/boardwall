@@ -126,6 +126,27 @@ function removeBoard(id) {
   if (store.data.boards.length === 0) openModal("add");
 }
 
+// Fermer une BaseWindow ne détruit pas les WebContentsView qu'elle portait :
+// chaque board laisserait son process de rendu derrière lui, et l'app resterait
+// vivante — invisible, sans fenêtre — jusqu'au kill. On les ferme donc à la
+// main, à la fermeture de la fenêtre comme avant de quitter.
+// Une vue déjà fermée n'a plus de `webContents` du tout : le raccourci
+// `view.webContents.isDestroyed()` lèverait une TypeError au second passage
+// (fermeture de la fenêtre, puis `before-quit`).
+function closeContents(view) {
+  const contents = view?.webContents;
+  if (contents && !contents.isDestroyed()) contents.close();
+}
+
+function teardown() {
+  for (const view of views.values()) closeContents(view);
+  views.clear();
+  closeContents(sidebar);
+  closeContents(modal);
+  sidebar = null;
+  modal = null;
+}
+
 function raiseModal() {
   if (!modal) return;
   win.contentView.removeChildView(modal);
@@ -311,7 +332,7 @@ function createWindow() {
   };
   win.on("resize", () => { layout(); remember(); });
   win.on("move", remember);
-  win.on("closed", () => { win = null; views.clear(); sidebar = null; modal = null; });
+  win.on("closed", () => { teardown(); win = null; });
 
   layout();
   applyTheme();
@@ -339,6 +360,8 @@ app.whenReady().then(() => {
     if (!win) createWindow();
   });
 });
+
+app.on("before-quit", teardown);
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();

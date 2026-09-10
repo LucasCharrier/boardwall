@@ -36,15 +36,50 @@ function openOutside(contents, url) {
   } catch {}
 }
 
+// Un échec de chargement fait sonner plusieurs événements à la fois
+// (`did-fail-load` puis `did-stop-loading`), et le retour au board qu'ils
+// déclenchent échoue à son tour tant que le réseau est coupé ou que GitHub
+// traîne. Sans garde-fou, la récupération se rappelle elle-même une vingtaine
+// de fois par seconde et par board : le process principal sature et le réseau
+// disparaît sous les requêtes. D'où une seule récupération en vol à la fois,
+// et des tentatives de plus en plus espacées tant que rien n'aboutit.
+const RETRY_DELAYS = [0, 1000, 3000, 8000, 20000, 60000];
+
 // Une SPA comme GitHub Projects peut quitter sa page de trois façons distinctes,
 // et une seule déclenche `will-navigate` : les liens internes passent par Turbo,
 // donc par `pushState`, que seul `did-navigate-in-page` voit passer.
 function guard(contents, homeUrl) {
   const home = typeof homeUrl === "function" ? homeUrl : () => homeUrl;
 
+  let pending = null;
+  let attempt = 0;
+  let failed = false;
+
   // Naviguer depuis l'intérieur d'un événement de navigation est fragile : on
   // repousse toujours la récupération au tick suivant.
-  const recover = () => setTimeout(() => contents.loadURL(home()), 0);
+  const recover = () => {
+    if (pending || contents.isDestroyed()) return;
+    const delay = RETRY_DELAYS[Math.min(attempt, RETRY_DELAYS.length - 1)];
+    attempt += 1;
+    pending = setTimeout(() => {
+      pending = null;
+      if (contents.isDestroyed()) return;
+      contents.loadURL(home()).catch(() => {});
+    }, delay);
+  };
+
+  // Une page qui s'affiche pour de bon efface l'ardoise : la prochaine
+  // récupération repart immédiate. Attention, `did-finish-load` sonne aussi
+  // pour la page d'erreur de Chromium, juste après `did-fail-load` — s'y fier
+  // seul remettrait le compteur à zéro à chaque échec, et l'espacement des
+  // tentatives ne servirait plus à rien.
+  contents.on("did-start-loading", () => { failed = false; });
+  contents.on("did-finish-load", () => { if (!failed) attempt = 0; });
+
+  contents.on("destroyed", () => {
+    clearTimeout(pending);
+    pending = null;
+  });
 
   contents.setWindowOpenHandler(({ url }) => {
     if (classify(url) === "blocked") openOutside(contents, url);
@@ -86,7 +121,9 @@ function guard(contents, homeUrl) {
   // Filet de sécurité : quoi qu'il arrive, une vue ne reste jamais vide. Un
   // ERR_ABORTED (-3) est le cas normal d'une navigation qu'on vient de bloquer.
   contents.on("did-fail-load", (_event, errorCode, _description, _url, isMainFrame) => {
-    if (isMainFrame && errorCode !== -3) recover();
+    if (!isMainFrame || errorCode === -3) return;
+    failed = true;
+    recover();
   });
 
   contents.on("did-stop-loading", () => {
