@@ -29,8 +29,10 @@ function surfaces() {
   return { window: dark ? "#0d1117" : "#ffffff", rail: dark ? "#16181d" : "#f0f2f5" };
 }
 
+// Ne repeint que les fonds : `applyTheme` écoute `nativeTheme.updated`, et sur macOS
+// chaque affectation de `themeSource` réémet `updated`, même à valeur égale. L'y
+// affecter bouclait à ~110 000 tours/s, process principal et boards à 100 % de CPU.
 function applyTheme() {
-  nativeTheme.themeSource = store.data.theme;
   const { window: windowColor, rail } = surfaces();
   win?.setBackgroundColor(windowColor);
   sidebar?.setBackgroundColor(rail);
@@ -246,6 +248,7 @@ function registerIpc() {
   ipcMain.handle("theme:get", () => store.data.theme);
   ipcMain.on("theme:set", (_event, theme) => {
     store.setTheme(theme);
+    nativeTheme.themeSource = store.data.theme;
     applyTheme();
     pushState();
   });
