@@ -53,7 +53,7 @@ avoir à deviner ce qu'un site fait d'un client qu'il ne reconnaît pas.
 | board d'orga, ses vues, panneaux et insights | `/orgs/<orga>/projects/12/views/1?pane=issue` |
 | liste des projects d'une orga | `/orgs/<orga>/projects` |
 | board perso | `/users/<login>/projects/3` |
-| étapes d'authentification | `/login`, `/session`, `/sessions/two-factor`, `/orgs/<orga>/sso` |
+| étapes d'authentification | `/login`, `/session`, `/switch_account`, `/sessions/two-factor`, `/orgs/<orga>/sso` |
 | login social, le temps de l'aller-retour | `accounts.google.com`, `appleid.apple.com` |
 
 Tout le reste est bloqué — `github.com/` compris.

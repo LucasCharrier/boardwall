@@ -14,6 +14,11 @@ const AUTH_PATHS = [
   /^\/sessions(\/.*)?$/,
   /^\/orgs\/[^/]+\/sso(\/.*)?$/,
   /^\/authentication(\/.*)?$/,
+  // Dès qu'un profil a déjà connu un compte (cookie `saved_user_sessions`), GitHub
+  // intercale son sélecteur de compte entre le mot de passe et la 2FA :
+  //   POST /session -> /switch_account?return_to=… -> /sessions/two-factor…
+  // Bloquée, cette étape renvoyait au board, déconnecté, sans un mot.
+  /^\/switch_account(\/.*)?$/,
 ];
 
 // « Continue with Google / Apple » sort de github.com le temps d'un aller-retour :

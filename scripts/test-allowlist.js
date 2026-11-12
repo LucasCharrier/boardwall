@@ -13,6 +13,7 @@ const CASES = [
   ["https://github.com/login?return_to=%2Forgs%2Facme%2Fprojects%2F12", "auth"],
   ["https://github.com/sessions/two-factor", "auth"],
   ["https://github.com/orgs/acme/sso", "auth"],
+  ["https://github.com/switch_account?return_to=%2Forgs%2Facme%2Fprojects%2F12", "auth"],
   ["https://github.com/", "blocked"],
   ["https://github.com/acme/repo/issues/1", "blocked"],
   ["https://github.com/acme/repo/pull/1", "blocked"],
